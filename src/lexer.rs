@@ -1,6 +1,6 @@
 use crate::helpers::{is_alpha, is_digit};
 use crate::token::Token;
-struct Lexer {
+pub(crate) struct Lexer {
     source: String,
     current: usize,
     start: usize,
