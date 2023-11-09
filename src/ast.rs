@@ -1,4 +1,3 @@
-use std::fmt::format;
 use crate::token::Token;
 
 #[derive(Debug, PartialEq)]

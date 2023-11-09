@@ -16,7 +16,7 @@ impl Parser {
         }
     }
 
-    fn parse_expr(&mut self, precedence: u8) -> Expr {
+    pub(crate) fn parse_expr(&mut self, precedence: u8) -> Expr {
         let mut token = self.advance();
         let prefix = token.prefix_fn();
 
