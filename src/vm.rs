@@ -71,8 +71,14 @@ impl VM {
                     return self.peek();
                 }
                 OpCode::Constant => {
-                    let constant = bytes[self.ip] as i32;
-                    self.ip += 1;
+                    let byte1 = bytes[self.ip];
+                    let byte2 = bytes[self.ip + 1];
+                    let byte3 = bytes[self.ip + 2];
+                    let byte4 = bytes[self.ip + 3];
+
+                    let constant = i32::from_be_bytes([byte4, byte3, byte2, byte1]);
+
+                    self.ip += 4;
                     self.push(constant);
                 }
                 OpCode::Negate => {
@@ -110,7 +116,7 @@ impl VM {
             panic!("Stack overflow")
         }
         self.stack_pointer += 1;
-        self.stack[self.stack_pointer] = 1; todo!("fix")
+        self.stack[self.stack_pointer] = constant;
     }
 
     fn pop(&mut self) -> Value {
@@ -133,8 +139,14 @@ mod test {
         let instructions = [
             1, // Constant
             10,
+            0,
+            0,
+            0,
             1, // Constant
             5,
+            0,
+            0,
+            0,
             3, // Add
             0, // Return
         ];
@@ -148,8 +160,14 @@ mod test {
         let instructions = [
             1, // Constant
             10,
+            0,
+            0,
+            0,
             1, // Constant
             5,
+            0,
+            0,
+            0,
             4, // Subtract
             0, // Return
         ];
@@ -164,8 +182,14 @@ mod test {
         let instructions = [
             1, // Constant
             10,
+            0,
+            0,
+            0,
             1, // Constant
             5,
+            0,
+            0,
+            0,
             5, // Multiply
             0, // Return
         ];
@@ -180,8 +204,14 @@ mod test {
         let instructions = [
             1, // Constant
             10,
+            0,
+            0,
+            0,
             1, // Constant
             5,
+            0,
+            0,
+            0,
             6, // Divide
             0, // Return
         ];

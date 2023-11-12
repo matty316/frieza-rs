@@ -17,6 +17,7 @@ impl Lexer {
         }
     }
 
+
     pub(crate) fn scan(&mut self) -> Vec<Token> {
         let mut tokens = vec![];
 
