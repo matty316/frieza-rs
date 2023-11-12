@@ -1,6 +1,6 @@
 use crate::token::Token;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub(crate) enum Expr {
     Binary { op: Token, left: Box<Expr>, right: Box<Expr> },
     Unary { op: Token, right: Box<Expr> },
@@ -23,6 +23,7 @@ impl Expr {
     }
 }
 
+#[derive(Clone)]
 pub(crate) enum Stmt {
     Expression { expr: Box<Expr> }
 }

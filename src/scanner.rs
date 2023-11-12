@@ -1,4 +1,3 @@
-use crate::helpers::*;
 use crate::token::Token;
 
 pub(crate) fn scan(source: &str) -> Vec<Token> {
@@ -246,10 +245,17 @@ fn advance(source: &str, current: usize, tokens: Vec<Token>, token: Token) -> Ve
     scan_tokens(source, new_idx, new_idx, new_tokens)
 }
 
-fn push<'a>(tokens: Vec<Token>, token: Token) -> Vec<Token> {
+fn push(tokens: Vec<Token>, token: Token) -> Vec<Token> {
     [tokens, vec![token]].concat().to_vec()
 }
 
+pub(crate) fn is_digit(c: char) -> bool {
+    '0' <= c && c <= '9'
+}
+
+pub(crate) fn is_alpha(c: char) -> bool {
+    'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || c == '_'
+}
 #[cfg(test)]
 mod test {
     use super::*;

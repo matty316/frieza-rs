@@ -1,125 +1,54 @@
-use crate::token::{Precedence, Token};
+use std::thread::current;
+use crate::token::Token;
 use crate::ast::Expr;
-use crate::ast::Expr::{Binary, Unary};
-// use crate::lexer::Lexer;
+use crate::ast::Stmt;
 
-pub(crate) struct Parser {
-    current: usize,
-    tokens: Vec<Token>,
+type Program = Vec<Stmt>;
+
+pub(crate) fn parse(tokens: Vec<Token>) -> Program {
+    parse_statements(tokens, vec![], 0)
 }
 
-impl Parser {
-    pub(crate) fn new(tokens: Vec<Token>) -> Self {
-        Parser {
-            current: 0,
-            tokens
+fn parse_statements(tokens: Vec<Token>, program: Program, current: usize) -> Program {
+    let is_at_end = current >= tokens.len();
+
+    if !is_at_end {
+        let declaration = declaration();
+        return advance(tokens, current, program, declaration);
+    }
+
+    return program
+}
+
+fn declaration() -> Stmt {
+    Stmt::Expression {expr: Box::new(Expr::Int {val: 1})}
+}
+
+//Helpers
+fn check(ops: &[Token], current: &Token) -> bool {
+    for o in ops {
+        if o == current {
+            return true
         }
     }
+    false
+}
 
-    pub(crate) fn parse_expr(&mut self, precedence: u8) -> Expr {
-        let mut token = self.advance();
-        let prefix = token.prefix_fn();
+fn advance(tokens: Vec<Token>, current: usize, program: Program, stmt: Stmt) -> Program {
+    let new_program = push(program, stmt);
+    let new_current = current + 1;
+    parse_statements(tokens, new_program, new_current)
+}
 
-        if prefix == None {
-            todo!("no prefix")
-        }
-
-        let mut left = prefix.unwrap()(self);
-
-        while precedence < self.peek().precedence() {
-            token = self.advance();
-            let infix = token.infix_fn();
-
-            if infix == None {
-                return left;
-            }
-
-            left = infix.unwrap()(self, left)
-        }
-
-        return left
-    }
-
-    pub(crate) fn parse_grouping(&mut self) -> Expr {
-        let expr = self.parse_expr(0);
-        self.consume(&Token::RParen);
-        Expr::Grouping { expr: Box::new(expr) }
-    }
-
-    pub(crate) fn parse_unary(&mut self) -> Expr {
-        let op = self.previous().clone();
-        Unary { op, right: Box::new(self.parse_expr(Precedence::Prefix as u8)) }
-    }
-
-    pub(crate) fn parse_binary(&mut self, left: Expr) -> Expr {
-        let op = self.previous().clone();
-        let right = self.parse_expr(op.precedence());
-
-        Binary { op, left: Box::new(left), right: Box::new(right) }
-    }
-
-    pub(crate) fn parse_int(&mut self) -> Expr {
-        let token = self.previous();
-        match token {
-            Token::Int(i) => Expr::Int { val: *i },
-            _ => todo!(),
-        }
-    }
-
-    pub(crate) fn parse_float(&mut self) -> Expr {
-        let token = self.previous();
-        match token {
-            Token::Float(f) => Expr::Float { val: *f },
-            _ => todo!(),
-        }
-    }
-
-    pub(crate) fn parse_string(&mut self) -> Expr {
-        let token = self.previous();
-        match token {
-            Token::String(s) => Expr::String { val: s.clone() },
-            _ => todo!(),
-        }
-    }
-
-    pub(crate) fn parse_name(&mut self) -> Expr {
-        let token = self.previous();
-        match token {
-            Token::Ident(i) => Expr::Name { val: i.clone() },
-            _ => todo!(),
-        }
-    }
-
-    //Helpers
-    fn advance(&mut self) -> &Token {
-        if !self.is_at_end() { self.current += 1; }
-        self.previous()
-    }
-
-    fn consume(&mut self, token: &Token) -> &Token {
-        if token == self.peek() {
-            return self.advance();
-        }
-        self.previous()
-    }
-
-    fn previous(&self) -> &Token {
-        &self.tokens[self.current - 1]
-    }
-
-    fn peek(&self) -> &Token {
-        if self.is_at_end() { return &Token::Eof; }
-        &self.tokens[self.current]
-    }
-
-    fn is_at_end(&self) -> bool {
-        self.tokens[self.current] == Token::Eof
-    }
+fn push(program: Program, stmt: Stmt) -> Program {
+    [program, vec![stmt]].concat()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::parser::parse;
+    use crate::scanner::scan;
     #[test]
     fn test_parse_expression() {
         let sources = vec![
@@ -140,13 +69,9 @@ mod tests {
             },
         ];
 
-        // for (i, s) in sources.iter().enumerate() {
-        //     let mut l = Lexer::new(s);
-        //     let tokens = l.scan();
-        //     let mut p = Parser::new(tokens);
-        //     let expr = p.parse_expr(0);
-        //     let e = &exp[i];
-        //     assert_eq!(&expr, e);
-        // }
+        for (i, s) in sources.iter().enumerate() {
+            let tokens = scan(s);
+            let p = parse(tokens);
+        }
     }
 }

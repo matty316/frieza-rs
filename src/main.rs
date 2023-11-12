@@ -1,10 +1,10 @@
 mod token;
-mod helpers;
 // mod parser;
-// mod ast;
+mod ast;
 // mod compiler;
 // mod vm;
 mod scanner;
+mod parser;
 
 fn main() {
     println!("Hello, world!");
