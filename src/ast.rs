@@ -23,7 +23,10 @@ impl Expr {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Stmt {
-    Expression { expr: Box<Expr> }
+    FunDeclaration { name: Token, params: Vec<Token>, body: Vec<Stmt> },
+    Block { stmts: Vec<Stmt> },
+    Return { expr: Expr },
+    Expression { expr: Expr },
 }
