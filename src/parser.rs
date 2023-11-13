@@ -33,18 +33,14 @@ fn fun(program: Program, tokens: &Vec<Token>, current: usize) -> Program {
     match token {
         Token::Ident(_) => {
             let name = token;
-            let params = parse_params(tokens, current + 1, vec![]);
-            let body = fun_body();
-            let fun_dec = FunDeclaration { name: name.clone(), params, body };
-            let new_current = current + params.len();
-            return advance(tokens, new_current, program, fun_dec);
+            return parse_params(tokens, current + 1, vec![]);
         }
         _ => (),
     }
     program
 }
 
-fn parse_params(tokens: &Vec<Token>, current: usize, params: Vec<Token>) -> Vec<Token> {
+fn parse_params(tokens: &Vec<Token>, current: usize, params: Vec<Token>) -> Program {
     let token = token_at(tokens, current);
     match token {
         Token::LParen => return parse_params(tokens, current + 1, params),
@@ -58,8 +54,10 @@ fn parse_params(tokens: &Vec<Token>, current: usize, params: Vec<Token>) -> Vec<
     }
 }
 
-fn add_param(params: Vec<Token>, param: &Token) -> Vec<Token> {
-    [params, vec![param.clone()]].concat()
+fn add_param(params: Vec<Token>, param: Token) -> Vec<Token> {
+    let mut mut_params = params;
+    mut_params.push(param);
+    mut_params
 }
 
 //Helpers
@@ -79,7 +77,9 @@ fn advance(tokens: &Vec<Token>, current: usize, program: Program, stmt: Stmt) ->
 }
 
 fn push(program: Program, stmt: Stmt) -> Program {
-    [program, vec![stmt]].concat()
+    let mut mut_program = program;
+    mut_program.push(stmt);
+    mut_program
 }
 
 fn token_at(tokens: &Vec<Token>, current: usize) -> &Token {

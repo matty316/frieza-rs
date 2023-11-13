@@ -246,7 +246,9 @@ fn advance(source: &str, current: usize, tokens: Vec<Token>, token: Token) -> Ve
 }
 
 fn push(tokens: Vec<Token>, token: Token) -> Vec<Token> {
-    [tokens, vec![token]].concat().to_vec()
+    let mut mut_tokens = tokens;
+    mut_tokens.push(token);
+    mut_tokens
 }
 
 pub(crate) fn is_digit(c: char) -> bool {
