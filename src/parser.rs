@@ -22,42 +22,53 @@ fn parse_statements(tokens: &Vec<Token>, program: Program, current: usize) -> Pr
 
 fn declaration(program: Program, tokens: &Vec<Token>, current: usize) -> Program {
     let token = token_at(tokens, current);
-    if token == &Token::Fun { return fun(program, tokens, current + 1); }
+    if token == &Token::Fun { return fun(program, tokens, current + 1, vec![]); }
     // if token == &Token::Let { return let_declaration(); }
     // statement()
     program
 }
 
-fn fun(program: Program, tokens: &Vec<Token>, current: usize) -> Program {
+fn fun(program: Program, tokens: &Vec<Token>, current: usize, params: Vec<&Token>) -> Program {
     let token = token_at(tokens, current);
     match token {
         Token::Ident(_) => {
             let name = token;
-            return parse_params(tokens, current + 1, vec![]);
+            return parse_params(program, tokens, current + 1, params);
+        }
+        Token::NewLine | Token::Colon => {
+
+            return parse_block(program, tokens, current + 1, params);
         }
         _ => (),
     }
     program
 }
 
-fn parse_params(tokens: &Vec<Token>, current: usize, params: Vec<Token>) -> Program {
+fn parse_params(program: Program, tokens: &Vec<Token>, current: usize, params: Vec<&Token>) -> Program {
     let token = token_at(tokens, current);
     match token {
-        Token::LParen => return parse_params(tokens, current + 1, params),
+        Token::LParen => return parse_params(program, tokens, current + 1, params),
         Token::Ident(s) => {
             let new_params = add_param(params, token);
-            return parse_params(tokens, current + 1, new_params);
+            return parse_params(program, tokens, current + 1, new_params);
         }
-        Token::Comma => return parse_params(tokens, current + 1, params),
-        Token::RParen => return params,
+        Token::Comma => return parse_params(program, tokens, current + 1, params),
+        Token::RParen => return fun(program, tokens, current + 1, params),
         _ => todo!("Error"),
     }
 }
 
-fn add_param(params: Vec<Token>, param: Token) -> Vec<Token> {
+fn add_param<'a>(params: Vec<&'a Token>, param: &Token) -> Vec<&'a Token> {
     let mut mut_params = params;
     mut_params.push(param);
     mut_params
+}
+
+fn parse_block(program: Program, tokens: &Vec<Token>, current: usize, params: Vec<&Token>, block: Vec<Stmt>) -> Program {
+    let token = token_at(tokens, current);
+    if token == Token::End || token == Token::NewLine {
+        return fun(program, tokens, current + 1)
+    }
 }
 
 //Helpers
