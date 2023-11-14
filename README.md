@@ -13,7 +13,7 @@ fun add(x, y)
     return x + y
 end
 
-if add(2, 3) > 4
+if add(2, 3) < 4
     print "nah"
 else 
     print "yah"
