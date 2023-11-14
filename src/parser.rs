@@ -1,109 +1,188 @@
-use std::thread::current;
+use std::thread::{current, sleep};
 use crate::token::Token;
 use crate::ast::Expr;
+use crate::ast::Expr::Name;
 use crate::ast::Stmt;
-use crate::ast::Stmt::FunDeclaration;
+use crate::ast::Stmt::{FunDeclaration, Return};
 
 type Program = Vec<Stmt>;
 
-pub(crate) fn parse(tokens: Vec<Token>) -> Program {
-    parse_statements(&tokens, vec![], 0)
+struct Parser {
+    tokens: Vec<Token>,
+    current: usize,
+    program: Program,
+    line: usize,
 }
 
-fn parse_statements(tokens: &Vec<Token>, program: Program, current: usize) -> Program {
-    let is_at_end = current >= tokens.len();
-
-    if !is_at_end {
-        return declaration(program, &tokens, current);
-    }
-
-    return program
+pub(crate) fn parse(tokens: &[Token]) -> Program {
+    let mut parser = Parser::new(tokens);
+    parser.parse()
 }
 
-fn declaration(program: Program, tokens: &Vec<Token>, current: usize) -> Program {
-    let token = token_at(tokens, current);
-    if token == &Token::Fun { return fun(program, tokens, current + 1, vec![]); }
-    // if token == &Token::Let { return let_declaration(); }
-    // statement()
-    program
-}
-
-fn fun(program: Program, tokens: &Vec<Token>, current: usize, params: Vec<&Token>) -> Program {
-    let token = token_at(tokens, current);
-    match token {
-        Token::Ident(_) => {
-            let name = token;
-            return parse_params(program, tokens, current + 1, params);
-        }
-        Token::NewLine | Token::Colon => {
-
-            return parse_block(program, tokens, current + 1, params);
-        }
-        _ => (),
-    }
-    program
-}
-
-fn parse_params(program: Program, tokens: &Vec<Token>, current: usize, params: Vec<&Token>) -> Program {
-    let token = token_at(tokens, current);
-    match token {
-        Token::LParen => return parse_params(program, tokens, current + 1, params),
-        Token::Ident(s) => {
-            let new_params = add_param(params, token);
-            return parse_params(program, tokens, current + 1, new_params);
-        }
-        Token::Comma => return parse_params(program, tokens, current + 1, params),
-        Token::RParen => return fun(program, tokens, current + 1, params),
-        _ => todo!("Error"),
-    }
-}
-
-fn add_param<'a>(params: Vec<&'a Token>, param: &Token) -> Vec<&'a Token> {
-    let mut mut_params = params;
-    mut_params.push(param);
-    mut_params
-}
-
-fn parse_block(program: Program, tokens: &Vec<Token>, current: usize, params: Vec<&Token>, block: Vec<Stmt>) -> Program {
-    let token = token_at(tokens, current);
-    if token == Token::End || token == Token::NewLine {
-        return fun(program, tokens, current + 1)
-    }
-}
-
-//Helpers
-fn check(ops: &[Token], current: &Token) -> bool {
-    for o in ops {
-        if o == current {
-            return true
+impl Parser {
+    fn new(tokens: &[Token]) -> Self {
+        Parser {
+            tokens: tokens.to_vec(),
+            program: vec![],
+            current: 0,
+            line: 1,
         }
     }
-    false
-}
 
-fn advance(tokens: &Vec<Token>, current: usize, program: Program, stmt: Stmt) -> Program {
-    let new_program = push(program, stmt);
-    let new_current = current + 1;
-    parse_statements(tokens, new_program, new_current)
-}
+    fn parse(&mut self) -> Program {
+        let mut program = vec![];
 
-fn push(program: Program, stmt: Stmt) -> Program {
-    let mut mut_program = program;
-    mut_program.push(stmt);
-    mut_program
-}
+        while !self.is_at_end() {
+            let declaration = self.declaration();
+            program.push(declaration)
+        }
 
-fn token_at(tokens: &Vec<Token>, current: usize) -> &Token {
-    if current >= tokens.len() { return &Token::Eof; }
-    &tokens[current]
+        program
+    }
+
+    fn declaration(&mut self) -> Stmt {
+
+        while self.peek() == Token::NewLine {
+            self.line += 1;
+            self.advance();
+        }
+
+        match self.peek() {
+            Token::Fun => { return self.fun(); }
+            _ => (),
+        }
+        return self.statement();
+    }
+
+    fn statement(&mut self) -> Stmt {
+    println!("statement {:?}", self.peek());
+        match self.peek() {
+            Token::Return => self.return_stmt(),
+            _ => {
+                todo!("error")
+            },
+        }
+    }
+
+    fn fun(&mut self) -> Stmt {
+        self.consume(Token::Fun);
+        let token = self.advance();
+        match token {
+            Token::Ident(_) => {
+                let params = self.params();
+                let body = self.block();
+
+                self.consume(Token::NewLine);
+                return FunDeclaration { name: token, params, body }
+            }
+            _ => {
+                todo!("error")
+            },
+        }
+    }
+
+    fn params(&mut self) -> Vec<Token> {
+        self.consume(Token::LParen);
+        let mut params = vec![];
+        while self.peek() != Token::RParen {
+            let token = self.advance();
+            match token {
+                Token::Ident(_) => params.push(token.clone()),
+                Token::Comma => (),
+                _ => todo!("error"),
+            }
+        }
+        self.consume(Token::RParen);
+
+        params
+    }
+
+    fn block(&mut self) -> Vec<Stmt> {
+        // Todo: handle colons
+        let mut stmts = vec![];
+        while self.peek() != Token::End && !self.is_at_end() {
+            let declaration = self.declaration();
+            stmts.push(declaration);
+        }
+        self.consume(Token::End);
+        stmts
+    }
+
+    fn return_stmt(&mut self) -> Stmt {
+        self.consume(Token::Return);
+        let expr: Option<Expr>;
+        if self.peek() != Token::NewLine {
+            expr = Some(self.expr());
+        } else {
+            expr = None;
+        }
+        self.advance();
+        self.consume(Token::NewLine);
+
+        return Return { expr }
+    }
+
+    fn expr(&mut self) -> Expr {
+        self.term()
+    }
+
+    fn term(&mut self) -> Expr {
+        let left = self.primary();
+
+        self.advance();
+        while self.peek() == Token::Plus || self.peek() == Token::Minus {
+            let op = self.advance();
+            let right = self.primary();
+
+            return Expr::Binary { left: Box::from(left), op, right: Box::from(right) }
+        }
+        return left
+    }
+
+    fn primary(&mut self) -> Expr {
+        match self.peek() {
+            Token::Int(i) => {
+                Expr::Int { val: i }
+            },
+            Token::Ident(s) => {
+                Name { val: s.clone() }
+            },
+            _ => todo!("error")
+        }
+    }
+
+    fn is_at_end(&self) -> bool {
+        self.tokens[self.current] == Token::Eof
+    }
+
+    fn consume(&mut self, token: Token) -> Token {
+        if token == self.peek() {
+            return self.advance();
+        }
+        println!("{:?} != {:?} line {}", token, self.peek(), self.line);
+        todo!("error")
+    }
+
+    fn advance(&mut self) -> Token {
+        let prev = &self.tokens[self.current];
+        self.current += 1;
+        prev.clone()
+    }
+
+    fn peek(&self) -> Token {
+        self.tokens[self.current].clone()
+    }
+
+    fn previous(&self) -> Token {
+        self.tokens[self.current - 1].clone()
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::parser::parse;
-    use crate::scanner::scan;
-
+    use crate::lexer::scan;
     #[test]
     fn test_fun() {
         let s = r#"
@@ -113,7 +192,7 @@ mod tests {
         "#;
 
         let t = scan(s);
-        let p = parse(t);
+        let p = parse(&t);
         assert_eq!(p.len(), 1);
 
         let function = Stmt::FunDeclaration {
@@ -121,41 +200,15 @@ mod tests {
             params: vec![Token::Ident("x".to_string()), Token::Ident("y".to_string())],
             body: vec![
                 Stmt::Return {
-                    expr: Expr::Binary {
+                    expr: Some(Expr::Binary {
                         left: Box::new(Expr::Name { val: "x".to_string() }),
                         right: Box::new(Expr::Name { val: "y".to_string() }),
                         op: Token::Plus,
-                    }
+                    })
                 }
             ]
         };
 
         assert_eq!(p.first().unwrap(), &function);
-    }
-
-    #[test]
-    fn test_parse_expression() {
-        let sources = vec![
-            "(1 + 3) * 4",
-            "1 + 3 * 4",
-        ];
-
-        let exp = vec![
-            Expr::Binary {
-                op: Token::Star,
-                left: Box::new(Expr::Grouping{expr: Box::new(Expr::Binary {left: Box::new(Expr::Int {val: 1}), right: Box::new(Expr::Int {val: 3}), op: Token::Plus}) }),
-                right: Box::new(Expr::Int {val: 4})
-            },
-            Expr::Binary {
-                op: Token::Plus,
-                left: Box::new(Expr::Int {val: 1}),
-                right: Box::new(Expr::Binary {op: Token::Star, left: Box::new(Expr::Int {val: 3}), right: Box::new(Expr::Int {val: 4})}),
-            },
-        ];
-
-        for (i, s) in sources.iter().enumerate() {
-            let tokens = scan(s);
-            let p = parse(tokens);
-        }
     }
 }

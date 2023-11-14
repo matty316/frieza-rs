@@ -27,6 +27,6 @@ impl Expr {
 pub(crate) enum Stmt {
     FunDeclaration { name: Token, params: Vec<Token>, body: Vec<Stmt> },
     Block { stmts: Vec<Stmt> },
-    Return { expr: Expr },
+    Return { expr: Option<Expr> },
     Expression { expr: Expr },
 }
