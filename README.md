@@ -1,4 +1,5 @@
-# frieza programming language - not for filthy saiyan monkeys
+# the frieza programming language 
+### not for filthy saiyan monkeys
 
 ![frieza-logo.png](frieza-logo.png)
 
