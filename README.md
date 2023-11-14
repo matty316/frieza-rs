@@ -1,5 +1,7 @@
 # frieza programming language - not for filthy saiyan monkeys
 
+![frieza-logo.png](frieza-logo.png)
+
 ```
 let j = "juice"
 let wrld = "WRLD"
