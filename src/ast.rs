@@ -29,4 +29,5 @@ pub(crate) enum Stmt {
     Block { stmts: Vec<Stmt> },
     Return { expr: Option<Expr> },
     Expression { expr: Expr },
+    Let { name: Token, expr: Expr },
 }
