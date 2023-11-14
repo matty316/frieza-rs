@@ -72,7 +72,6 @@ impl Parser {
                 let params = self.params();
                 let body = self.block();
 
-                self.consume(Token::NewLine);
                 return FunDeclaration { name: token, params, body }
             }
             _ => {
@@ -98,26 +97,29 @@ impl Parser {
     }
 
     fn block(&mut self) -> Vec<Stmt> {
-        // Todo: handle colons
         let mut stmts = vec![];
         while self.peek() != Token::End && !self.is_at_end() {
             let declaration = self.declaration();
             stmts.push(declaration);
         }
-        self.consume(Token::End);
+        if self.peek() == Token::NewLine || self.peek() == Token::End {
+            self.advance();
+        }
         stmts
     }
 
     fn return_stmt(&mut self) -> Stmt {
         self.consume(Token::Return);
         let expr: Option<Expr>;
-        if self.peek() != Token::NewLine {
+        if self.peek() != Token::NewLine && !self.is_at_end() {
             expr = Some(self.expr());
         } else {
             expr = None;
         }
         self.advance();
-        self.consume(Token::NewLine);
+        if self.peek() == Token::NewLine || self.peek() == Token::Eof {
+            self.advance();
+        }
 
         return Return { expr }
     }
@@ -189,11 +191,13 @@ mod tests {
         fun add(x, y)
             return x + y
         end
+
+        fun add(x, y) return x + y
         "#;
 
         let t = scan(s);
         let p = parse(&t);
-        assert_eq!(p.len(), 1);
+        assert_eq!(p.len(), 2);
 
         let function = Stmt::FunDeclaration {
             name: Token::Ident("add".to_string()),
