@@ -2,7 +2,7 @@ use crate::token::Token;
 use crate::ast::Expr;
 use crate::ast::Expr::{Name, String};
 use crate::ast::Stmt;
-use crate::ast::Stmt::{FunDeclaration, Let, Return};
+use crate::ast::Stmt::{Expression, FunDeclaration, Let, Return};
 
 type Program = Vec<Stmt>;
 
@@ -48,9 +48,9 @@ impl Parser {
     }
 
     fn statement(&mut self) -> Stmt {
-        println!("statement {:?} line {}", self.peek(), self.line);
         if self.check(vec![Token::Return]) { return self.return_stmt(); }
-        todo!("error")
+
+        self.expr_statement()
     }
 
     fn fun(&mut self) -> Stmt {
@@ -122,6 +122,11 @@ impl Parser {
         }
     }
 
+    fn expr_statement(&mut self) -> Stmt {
+        let expr = self.expr();
+        Expression { expr }
+    }
+
     fn expr(&mut self) -> Expr {
         self.term()
     }
@@ -164,7 +169,6 @@ impl Parser {
         if token == self.peek() {
             return self.advance();
         }
-        println!("{:?} != {:?} line {}", token, self.peek(), self.line);
         todo!("error")
     }
 
@@ -261,5 +265,63 @@ mod tests {
         assert_eq!(exp1, p[0]);
         assert_eq!(exp2, p[1]);
         assert_eq!(exp3, p[2]);
+    }
+
+    #[test]
+    fn test_expr_stmt() {
+        let s = r#"
+        1 + 1
+        x + y
+        x + 1
+        juice + " " + wrld
+        "#;
+
+        let exp = vec![
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Int { val: 1 }),
+                    op: Token::Plus,
+                    right: Box::new(Expr::Int { val: 1 }),
+                }
+            },
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Name { val: "x".to_string() }),
+                    op: Token::Plus,
+                    right: Box::new(Expr::Name { val: "y".to_string() }),
+                }
+            },
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Name { val: "x".to_string() }),
+                    op: Token::Plus,
+                    right: Box::new(Expr::Int { val: 1 }),
+                }
+            },
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Binary {
+                        left: Box::new(Expr::Name { val: "juice".to_string() }),
+                        op: Token::Plus,
+                        right: Box::new(Expr::String { val: " ".to_string() }),
+                    }),
+                    op: Token::Plus,
+                    right: Box::new(Expr::Name { val: "wrld".to_string() })
+                }
+            },
+        ];
+
+        check_stmt(s, exp);
+    }
+
+    fn check_stmt(s: &str, exp: Vec<Stmt>) {
+        let t = scan(s);
+        let p = parse(&t);
+
+        assert_eq!(p.len(), exp.len());
+
+        for (i, stmt) in p.iter().enumerate() {
+            assert_eq!(stmt, &exp[i]);
+        }
     }
 }
