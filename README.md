@@ -29,7 +29,7 @@ protocol Warrior
   fun fight()
 end
 
-struct Saiyan
+struct Saiyan: Warrior
   let name: string
   let powerLevel: int
   let currentForm: form

@@ -1,4 +1,3 @@
-use std::thread::{current, sleep};
 use crate::token::Token;
 use crate::ast::Expr;
 use crate::ast::Expr::Name;
