@@ -132,13 +132,25 @@ impl Parser {
     }
 
     fn term(&mut self) -> Expr {
-        let mut left = self.primary();
+        let mut left = self.factor();
 
         while self.check(vec![Token::Plus, Token::Minus]) {
             let op = self.previous();
+            let right = self.factor();
+
+            left = Expr::Binary { left: Box::new(left), op, right: Box::new(right) }
+        }
+        return left
+    }
+
+    fn factor(&mut self) -> Expr {
+        let mut left = self.primary();
+
+        while self.check(vec![Token::Star, Token::Slash]) {
+            let op = self.previous();
             let right = self.primary();
 
-            left = Expr::Binary { left: Box::from(left), op, right: Box::from(right) }
+            left = Expr::Binary { left: Box::new(left), op, right: Box::new(right) }
         }
         return left
     }
@@ -307,6 +319,73 @@ mod tests {
                     }),
                     op: Token::Plus,
                     right: Box::new(Expr::Name { val: "wrld".to_string() })
+                }
+            },
+        ];
+
+        check_stmt(s, exp);
+    }
+
+    #[test]
+    fn test_binary() {
+        let s = r#"
+        1 + 2
+        1 - 2
+        1 * 2
+        1 / 2
+        1 + 2 + 3
+        1 + 2 * 3
+        "#;
+
+        let exp = vec![
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Int { val: 1 }),
+                    op: Token::Plus,
+                    right: Box::new(Expr::Int { val: 2 }),
+                }
+            },
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Int { val: 1 }),
+                    op: Token::Minus,
+                    right: Box::new(Expr::Int { val: 2 }),
+                }
+            },
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Int { val: 1 }),
+                    op: Token::Star,
+                    right: Box::new(Expr::Int { val: 2 }),
+                }
+            },
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Int { val: 1 }),
+                    op: Token::Slash,
+                    right: Box::new(Expr::Int { val: 2 }),
+                }
+            },
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Binary {
+                        left: Box::new(Expr::Int { val: 1 }),
+                        op: Token::Plus,
+                        right: Box::new(Expr::Int { val: 2 }),
+                    }),
+                    op: Token::Plus,
+                    right: Box::new(Expr::Int { val: 3 }),
+                }
+            },
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Int { val: 1 }),
+                    op: Token::Plus,
+                    right: Box::new(Binary {
+                        left: Box::new(Expr::Int { val: 2 }),
+                        op: Token::Star,
+                        right: Box::new(Expr::Int { val: 3 }),
+                    }),
                 }
             },
         ];
