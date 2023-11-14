@@ -42,12 +42,13 @@ struct Saiyan: Warrior
   
     fun fight()
         powerUp()
-        transform(.superSaiyan)
+        goSuperSaiyan()
         return powerLevel
     end
 
     fun powerUp()
         print "scream"
+        powerLevel += 1000
     end
 
     fun transform(form)
@@ -57,6 +58,7 @@ struct Saiyan: Warrior
     fun goSuperSaiyan
         if currentForm != .superSaiyan
             transform(.superSaiyan)
+            powerLevel *= 50
         end
     end
 end
