@@ -3,6 +3,7 @@ use crate::ast::Expr;
 use crate::ast::Expr::{Name, String};
 use crate::ast::Stmt;
 use crate::ast::Stmt::{Expression, FunDeclaration, Let, Return};
+use crate::token::Token::Print;
 
 type Program = Vec<Stmt>;
 
@@ -49,7 +50,7 @@ impl Parser {
 
     fn statement(&mut self) -> Stmt {
         if self.check(vec![Token::Return]) { return self.return_stmt(); }
-
+        if self.check(vec![Token::Print]) { return self.print_stmt(); }
         self.expr_statement()
     }
 
@@ -108,6 +109,12 @@ impl Parser {
         }
 
         return Return { expr }
+    }
+
+    fn print_stmt(&mut self) -> Stmt {
+        let expr = self.expr();
+        self.consume(Token::NewLine);
+        return Stmt::Print { expr }
     }
 
     fn let_declaration(&mut self) -> Stmt {
@@ -214,6 +221,8 @@ mod tests {
     use super::*;
     use crate::parser::parse;
     use crate::lexer::scan;
+    use crate::token::Token::Print;
+
     #[test]
     fn test_fun() {
         let s = r#"
@@ -389,6 +398,27 @@ mod tests {
                 }
             },
         ];
+
+        check_stmt(s, exp);
+    }
+
+    #[test]
+    fn test_print() {
+        let s = r#"
+        print "free" + "lil" + "steve"
+        "#;
+
+        let exp = vec![Stmt::Print {
+            expr: Expr::Binary {
+                left: Box::new(Expr::Binary {
+                    left: Box::new(Expr::String { val: "free".to_string() }),
+                    op: Token::Plus,
+                    right: Box::new(Expr::String { val: "lil".to_string() }),
+                }),
+                op: Token::Plus,
+                right: Box::new(Expr::String { val: "steve".to_string() }),
+            }
+        }];
 
         check_stmt(s, exp);
     }
