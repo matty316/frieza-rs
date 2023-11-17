@@ -1,5 +1,5 @@
 use crate::token::Token;
-pub(crate) struct Lexer {
+struct Lexer {
     source: String,
     current: usize,
     start: usize,

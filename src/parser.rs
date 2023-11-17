@@ -3,9 +3,8 @@ use crate::ast::Expr;
 use crate::ast::Expr::{Name, String};
 use crate::ast::Stmt;
 use crate::ast::Stmt::{Expression, FunDeclaration, Let, Return};
-use crate::token::Token::Print;
 
-type Program = Vec<Stmt>;
+pub(crate) type Program = Vec<Stmt>;
 
 struct Parser {
     tokens: Vec<Token>,
@@ -14,15 +13,15 @@ struct Parser {
     line: usize,
 }
 
-pub(crate) fn parse(tokens: &[Token]) -> Program {
+pub(crate) fn parse(tokens: Vec<Token>) -> Program {
     let mut parser = Parser::new(tokens);
     parser.parse()
 }
 
 impl Parser {
-    fn new(tokens: &[Token]) -> Self {
+    fn new(tokens: Vec<Token>) -> Self {
         Parser {
-            tokens: tokens.to_vec(),
+            tokens,
             program: vec![],
             current: 0,
             line: 1,
@@ -234,7 +233,7 @@ mod tests {
         "#;
 
         let t = scan(s);
-        let p = parse(&t);
+        let p = parse(t);
         assert_eq!(p.len(), 2);
 
         let function = Stmt::FunDeclaration {
@@ -264,7 +263,7 @@ mod tests {
         "#;
 
         let t = scan(s);
-        let p = parse(&t);
+        let p = parse(t);
 
         assert_eq!(p.len(), 3);
 
@@ -425,7 +424,7 @@ mod tests {
 
     fn check_stmt(s: &str, exp: Vec<Stmt>) {
         let t = scan(s);
-        let p = parse(&t);
+        let p = parse(t);
 
         assert_eq!(p.len(), exp.len());
 
