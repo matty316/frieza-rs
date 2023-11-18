@@ -35,6 +35,7 @@ impl Compiler {
         match expr {
             Expr::Binary { .. } => self.visit_binary(expr),
             Expr::Int { .. } => self.visit_int(expr),
+            Expr::Float { .. } => self.visit_float(expr),
             _ => (),
         }
     }
@@ -74,7 +75,7 @@ impl ExprVisitor for Compiler {
     fn visit_int(&mut self, expr: &Expr) {
         match expr {
             Expr::Int { val } => {
-                self.code.push(OpCode::Constant as u8);
+                self.code.push(OpCode::Int as u8);
                 let bytes = val.to_be_bytes();
                 self.code.push(bytes[3]);
                 self.code.push(bytes[2]);
@@ -82,6 +83,24 @@ impl ExprVisitor for Compiler {
                 self.code.push(bytes[0]);
             }
             _ => todo!("error"),
+        }
+    }
+
+    fn visit_float(&mut self, expr: &Expr) {
+        match expr {
+            Expr::Float { val } => {
+                self.code.push(OpCode::Float as u8);
+                let bytes = val.to_be_bytes();
+                self.code.push(bytes[7]);
+                self.code.push(bytes[6]);
+                self.code.push(bytes[5]);
+                self.code.push(bytes[4]);
+                self.code.push(bytes[3]);
+                self.code.push(bytes[2]);
+                self.code.push(bytes[1]);
+                self.code.push(bytes[0]);
+            }
+            _ => todo!(),
         }
     }
 }
@@ -136,5 +155,29 @@ mod tests {
         ];
 
         assert_eq!(exp, code);
+    }
+
+    #[test]
+    fn test_float() {
+        let s = "10.44492";
+        let t = scan(s);
+        println!("{t:?}");
+        let p = parse(t);
+        println!("{p:?}");
+        assert_eq!(p.len(), 1);
+        let c = compile(p);
+        println!("{c:?}");
+        assert_eq!(c[0], 7); // Float opcode
+        let byte1 = c[1];
+        let byte2 = c[2];
+        let byte3 = c[3];
+        let byte4 = c[4];
+        let byte5 = c[5];
+        let byte6 = c[6];
+        let byte7 = c[7];
+        let byte8 = c[8];
+
+        let num = f64::from_be_bytes([byte8, byte7, byte6, byte5, byte4, byte3, byte2, byte1]);
+        assert_eq!(num, 10.44492)
     }
 }

@@ -1,6 +1,6 @@
 use crate::token::Token;
 use crate::ast::Expr;
-use crate::ast::Expr::{Name, String};
+use crate::ast::Expr::{Float, Name, String};
 use crate::ast::Stmt;
 use crate::ast::Stmt::{Expression, FunDeclaration, Let, Return};
 
@@ -174,6 +174,10 @@ impl Parser {
             Token::String(s) => {
                 self.advance();
                 String { val: s }
+            },
+            Token::Float(f) => {
+                self.advance();
+                Float { val: f }
             }
             _ => todo!("error")
         }
@@ -216,7 +220,7 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
-    use crate::ast::Expr::Binary;
+    use crate::ast::Expr::{Binary, Int};
     use super::*;
     use crate::parser::parse;
     use crate::lexer::scan;
@@ -418,6 +422,25 @@ mod tests {
                 right: Box::new(Expr::String { val: "steve".to_string() }),
             }
         }];
+
+        check_stmt(s, exp);
+    }
+
+    #[test]
+    fn test_literal() {
+        let s = r#"
+        1
+        2
+        10.5
+        35.5353
+        "#;
+
+        let exp = vec![
+            Expression {expr: Int {val: 1}},
+            Expression {expr: Int {val: 2}},
+            Expression {expr: Float {val: 10.5}},
+            Expression {expr: Float {val: 35.5353}}
+        ];
 
         check_stmt(s, exp);
     }

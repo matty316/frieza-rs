@@ -22,14 +22,6 @@ impl Expr {
             Expr::Name { val } => val.to_string(),
         }
     }
-
-    pub(crate) fn accept(&self, mut visitor: impl ExprVisitor) {
-        match self {
-            Expr::Binary { .. } => visitor.visit_binary(self),
-            Expr::Int { .. } => visitor.visit_int(self),
-            _ => (),
-        }
-    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -40,13 +32,4 @@ pub(crate) enum Stmt {
     Expression { expr: Expr },
     Let { name: Token, expr: Expr },
     Print { expr: Expr },
-}
-
-impl Stmt {
-    fn accept(&self, mut visitor: impl StmtVisitor) {
-        match self {
-            Stmt::Expression { .. } => visitor.visit_expr_stmt(self),
-            _ => (),
-        }
-    }
 }

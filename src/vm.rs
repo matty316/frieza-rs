@@ -42,7 +42,7 @@ impl VM {
                     }
                     return self.peek();
                 }
-                OpCode::Constant => {
+                OpCode::Int => {
                     let byte1 = bytes[self.ip];
                     let byte2 = bytes[self.ip + 1];
                     let byte3 = bytes[self.ip + 2];
@@ -77,6 +77,7 @@ impl VM {
                     let a = self.pop();
                     self.push(a.wrapping_div(b));
                 }
+                OpCode::Float => todo!(),
             }
         }
 
@@ -191,5 +192,12 @@ mod test {
         let mut vm = VM::new();
         let val = vm.interpret(&instructions);
         assert_eq!(val, 2)
+    }
+
+    #[test]
+    fn test_interpret_source() {
+        let s = r#"
+        10 + 10
+        "#;
     }
 }
