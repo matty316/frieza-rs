@@ -2,7 +2,7 @@ use crate::ast::{Expr, Stmt};
 use crate::token::Token;
 use crate::vm::VM;
 use crate::parser::Program;
-use crate::opcodes::{Value, OpCode};
+use crate::opcodes::OpCode;
 use crate::visitor::{ExprVisitor, StmtVisitor};
 
 struct Compiler {
@@ -77,10 +77,10 @@ impl ExprVisitor for Compiler {
             Expr::Int { val } => {
                 self.code.push(OpCode::Int as u8);
                 let bytes = val.to_be_bytes();
-                self.code.push(bytes[3]);
-                self.code.push(bytes[2]);
-                self.code.push(bytes[1]);
                 self.code.push(bytes[0]);
+                self.code.push(bytes[1]);
+                self.code.push(bytes[2]);
+                self.code.push(bytes[3]);
             }
             _ => todo!("error"),
         }
@@ -91,14 +91,14 @@ impl ExprVisitor for Compiler {
             Expr::Float { val } => {
                 self.code.push(OpCode::Float as u8);
                 let bytes = val.to_be_bytes();
-                self.code.push(bytes[7]);
-                self.code.push(bytes[6]);
-                self.code.push(bytes[5]);
-                self.code.push(bytes[4]);
-                self.code.push(bytes[3]);
-                self.code.push(bytes[2]);
-                self.code.push(bytes[1]);
                 self.code.push(bytes[0]);
+                self.code.push(bytes[1]);
+                self.code.push(bytes[2]);
+                self.code.push(bytes[3]);
+                self.code.push(bytes[4]);
+                self.code.push(bytes[5]);
+                self.code.push(bytes[6]);
+                self.code.push(bytes[7]);
             }
             _ => todo!(),
         }
@@ -119,15 +119,15 @@ mod tests {
         let code = compile(p);
         let exp = vec![
             1, // Constant
+            0,
+            0,
+            0,
             1,
-            0,
-            0,
-            0,
             1, // Constant
+            0,
+            0,
+            0,
             2,
-            0,
-            0,
-            0,
             3, // Add
         ];
 
@@ -141,17 +141,17 @@ mod tests {
         let p = parse(t);
         let code = compile(p);
         let exp = vec![
-            0x01, // Constant
-            0xFF,
-            0xFF,
-            0xFF,
+            0x01, // Int OpCode
             0x7F,
-            0x01, // Constant
             0xFF,
             0xFF,
             0xFF,
+            0x01, // Int OpCode
             0x7F,
-            0x03, // Add
+            0xFF,
+            0xFF,
+            0xFF,
+            0x03, // Add OpCode
         ];
 
         assert_eq!(exp, code);
@@ -177,7 +177,7 @@ mod tests {
         let byte7 = c[7];
         let byte8 = c[8];
 
-        let num = f64::from_be_bytes([byte8, byte7, byte6, byte5, byte4, byte3, byte2, byte1]);
+        let num = f64::from_be_bytes([byte1, byte2, byte3, byte4, byte5, byte6, byte7, byte8]);
         assert_eq!(num, 10.44492)
     }
 }

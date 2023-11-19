@@ -224,7 +224,6 @@ mod tests {
     use super::*;
     use crate::parser::parse;
     use crate::lexer::scan;
-    use crate::token::Token::Print;
 
     #[test]
     fn test_fun() {

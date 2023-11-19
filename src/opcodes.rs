@@ -9,8 +9,6 @@ pub(crate) enum OpCode {
     Float,
 }
 
-pub(crate) type Value = i32;
-
 impl TryInto<OpCode> for u8 {
     type Error = ();
 
