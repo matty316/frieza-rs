@@ -1,8 +1,8 @@
 use crate::token::Token;
 use crate::ast::Expr;
-use crate::ast::Expr::{Float, Name, String};
+use crate::ast::Expr::*;
 use crate::ast::Stmt;
-use crate::ast::Stmt::{Expression, FunDeclaration, Let, Return};
+use crate::ast::Stmt::*;
 
 pub(crate) type Program = Vec<Stmt>;
 
@@ -50,6 +50,7 @@ impl Parser {
     fn statement(&mut self) -> Stmt {
         if self.check(vec![Token::Return]) { return self.return_stmt(); }
         if self.check(vec![Token::Print]) { return self.print_stmt(); }
+        if self.check(vec![Token::If]) { return self.if_stmt(); }
         self.expr_statement()
     }
 
@@ -108,6 +109,23 @@ impl Parser {
         }
 
         return Return { expr }
+    }
+
+    fn if_stmt(&mut self) -> Stmt {
+        let condition = self.expr();
+        self.consume(Token::NewLine);
+        let consequence = self.block();
+
+        let alternative: Option<Vec<Stmt>>;
+        if self.check(vec![Token::Else]) {
+            alternative = Some(self.block());
+        } else {
+            alternative = None;
+        }
+        self.consume(Token::End);
+
+        If { condition, consequence, alternative }
+            
     }
 
     fn print_stmt(&mut self) -> Stmt {
@@ -346,6 +364,10 @@ mod tests {
         1 / 2
         1 + 2 + 3
         1 + 2 * 3
+        1 < 2
+        1 > 2
+        1 <= 2
+        1 >= 2
         "#;
 
         let exp = vec![
@@ -453,5 +475,29 @@ mod tests {
         for (i, stmt) in p.iter().enumerate() {
             assert_eq!(stmt, &exp[i]);
         }
+    }
+
+    #[test]
+    fn test_if() {
+        let s = r#"
+        if 1 < 2 
+            print "yah"
+        else 
+            print "nah"
+        end
+        "#;
+
+        let exp = vec![
+           Stmt::If { 
+                condition: Expr::Binary {
+                    left: Box::new(Expr::Int {val: 1}),
+                    right: Box::new(Expr::Int {val: 2}),
+                    op: Token::Plus,
+                },
+                consequence: vec![Stmt::Print {expr: Expr::String {val: "yah".to_string()}}],
+                alternative: Some(vec![Stmt::Print {expr: Expr::String {val: "nah".to_string()}}]),
+           },
+        ];
+        check_stmt(s, exp);
     }
 }
