@@ -152,7 +152,19 @@ impl Parser {
     }
 
     fn expr(&mut self) -> Expr {
-        self.term()
+        self.comparison()
+    }
+
+    fn comparison(&mut self) -> Expr {
+        let mut left = self.term();
+
+        while self.check(vec![Token::Gt, Token::GtEq, Token::Lt, Token::LtEq]) {
+            let op = self.previous();
+            let right = self.term();
+            left = Expr::Binary { left: Box::new(left), op, right: Box::new(right) }
+        }
+
+        left
     }
 
     fn term(&mut self) -> Expr {
@@ -421,7 +433,35 @@ mod tests {
                     }),
                 }
             },
-        ];
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Int { val: 1 }),
+                    op: Token::Lt,
+                    right: Box::new(Expr::Int { val: 2 }),
+                }
+            },
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Int { val: 1 }),
+                    op: Token::Gt,
+                    right: Box::new(Expr::Int { val: 2 }),
+                }
+            },
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Int { val: 1 }),
+                    op: Token::LtEq,
+                    right: Box::new(Expr::Int { val: 2 }),
+                }
+            },
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Int { val: 1 }),
+                    op: Token::GtEq,
+                    right: Box::new(Expr::Int { val: 2 }),
+                }
+            },
+      ];
 
         check_stmt(s, exp);
     }
