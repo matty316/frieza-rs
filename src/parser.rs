@@ -61,6 +61,7 @@ impl Parser {
                 let params = self.params();
                 let body = self.block();
 
+                self.consume(Token::End);
                 return FunDeclaration { name: token, params, body }
             }
             _ => {
@@ -87,12 +88,11 @@ impl Parser {
 
     fn block(&mut self) -> Vec<Stmt> {
         let mut stmts = vec![];
-        while !self.is_at_end() && self.peek() != Token::End  {
+        while !self.is_at_end() && self.peek() != Token::End && self.peek() != Token::Else {
             if let Some(declaration) = self.declaration() {
                 stmts.push(declaration);
             }
         }
-        self.advance();
         stmts
     }
 
@@ -104,7 +104,7 @@ impl Parser {
             expr = None;
         }
         self.advance();
-        if self.peek() == Token::NewLine || self.peek() == Token::Eof {
+        if self.peek() == Token::NewLine {
             self.advance();
         }
 
@@ -117,6 +117,7 @@ impl Parser {
         let consequence = self.block();
 
         let alternative: Option<Vec<Stmt>>;
+        
         if self.check(vec![Token::Else]) {
             alternative = Some(self.block());
         } else {
@@ -209,7 +210,10 @@ impl Parser {
                 self.advance();
                 Float { val: f }
             }
-            _ => todo!("error")
+            _ => {
+                println!("{:?}", self.peek());
+                todo!("error");
+            }
         }
     }
 
@@ -221,6 +225,8 @@ impl Parser {
         if token == self.peek() {
             return self.advance();
         }
+                println!("{:?}", token);
+                println!("{:?}", self.peek());
         todo!("error")
     }
 
@@ -261,13 +267,11 @@ mod tests {
         fun add(x, y)
             return x + y
         end
-
-        fun add(x, y) return x + y
         "#;
 
         let t = scan(s);
         let p = parse(t);
-        assert_eq!(p.len(), 2);
+        assert_eq!(p.len(), 1);
 
         let function = Stmt::FunDeclaration {
             name: Token::Ident("add".to_string()),
@@ -284,7 +288,6 @@ mod tests {
         };
 
         assert_eq!(p[0], function);
-        assert_eq!(p[1], function);
     }
 
     #[test]
@@ -532,7 +535,7 @@ mod tests {
                 condition: Expr::Binary {
                     left: Box::new(Expr::Int {val: 1}),
                     right: Box::new(Expr::Int {val: 2}),
-                    op: Token::Plus,
+                    op: Token::Lt,
                 },
                 consequence: vec![Stmt::Print {expr: Expr::String {val: "yah".to_string()}}],
                 alternative: Some(vec![Stmt::Print {expr: Expr::String {val: "nah".to_string()}}]),
