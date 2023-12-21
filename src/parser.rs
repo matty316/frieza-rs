@@ -1,8 +1,8 @@
 use crate::token::Token;
 use crate::ast::Expr;
-use crate::ast::Expr::{Float, Name, String};
+use crate::ast::Expr::*;
 use crate::ast::Stmt;
-use crate::ast::Stmt::{Expression, FunDeclaration, Let, Return};
+use crate::ast::Stmt::*;
 
 pub(crate) type Program = Vec<Stmt>;
 
@@ -50,6 +50,7 @@ impl Parser {
     fn statement(&mut self) -> Stmt {
         if self.check(vec![Token::Return]) { return self.return_stmt(); }
         if self.check(vec![Token::Print]) { return self.print_stmt(); }
+        if self.check(vec![Token::If]) { return self.if_stmt(); }
         self.expr_statement()
     }
 
@@ -60,6 +61,7 @@ impl Parser {
                 let params = self.params();
                 let body = self.block();
 
+                self.consume(Token::End);
                 return FunDeclaration { name: token, params, body }
             }
             _ => {
@@ -86,12 +88,11 @@ impl Parser {
 
     fn block(&mut self) -> Vec<Stmt> {
         let mut stmts = vec![];
-        while !self.is_at_end() && self.peek() != Token::End  {
+        while !self.is_at_end() && self.peek() != Token::End && self.peek() != Token::Else {
             if let Some(declaration) = self.declaration() {
                 stmts.push(declaration);
             }
         }
-        self.advance();
         stmts
     }
 
@@ -103,11 +104,29 @@ impl Parser {
             expr = None;
         }
         self.advance();
-        if self.peek() == Token::NewLine || self.peek() == Token::Eof {
+        if self.peek() == Token::NewLine {
             self.advance();
         }
 
         return Return { expr }
+    }
+
+    fn if_stmt(&mut self) -> Stmt {
+        let condition = self.expr();
+        self.consume(Token::NewLine);
+        let consequence = self.block();
+
+        let alternative: Option<Vec<Stmt>>;
+        
+        if self.check(vec![Token::Else]) {
+            alternative = Some(self.block());
+        } else {
+            alternative = None;
+        }
+        self.consume(Token::End);
+
+        If { condition, consequence, alternative }
+            
     }
 
     fn print_stmt(&mut self) -> Stmt {
@@ -134,7 +153,19 @@ impl Parser {
     }
 
     fn expr(&mut self) -> Expr {
-        self.term()
+        self.comparison()
+    }
+
+    fn comparison(&mut self) -> Expr {
+        let mut left = self.term();
+
+        while self.check(vec![Token::Gt, Token::GtEq, Token::Lt, Token::LtEq]) {
+            let op = self.previous();
+            let right = self.term();
+            left = Expr::Binary { left: Box::new(left), op, right: Box::new(right) }
+        }
+
+        left
     }
 
     fn term(&mut self) -> Expr {
@@ -179,7 +210,10 @@ impl Parser {
                 self.advance();
                 Float { val: f }
             }
-            _ => todo!("error")
+            _ => {
+                println!("{:?}", self.peek());
+                todo!("error");
+            }
         }
     }
 
@@ -191,6 +225,8 @@ impl Parser {
         if token == self.peek() {
             return self.advance();
         }
+                println!("{:?}", token);
+                println!("{:?}", self.peek());
         todo!("error")
     }
 
@@ -231,13 +267,11 @@ mod tests {
         fun add(x, y)
             return x + y
         end
-
-        fun add(x, y) return x + y
         "#;
 
         let t = scan(s);
         let p = parse(t);
-        assert_eq!(p.len(), 2);
+        assert_eq!(p.len(), 1);
 
         let function = Stmt::FunDeclaration {
             name: Token::Ident("add".to_string()),
@@ -254,7 +288,6 @@ mod tests {
         };
 
         assert_eq!(p[0], function);
-        assert_eq!(p[1], function);
     }
 
     #[test]
@@ -346,6 +379,10 @@ mod tests {
         1 / 2
         1 + 2 + 3
         1 + 2 * 3
+        1 < 2
+        1 > 2
+        1 <= 2
+        1 >= 2
         "#;
 
         let exp = vec![
@@ -399,7 +436,35 @@ mod tests {
                     }),
                 }
             },
-        ];
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Int { val: 1 }),
+                    op: Token::Lt,
+                    right: Box::new(Expr::Int { val: 2 }),
+                }
+            },
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Int { val: 1 }),
+                    op: Token::Gt,
+                    right: Box::new(Expr::Int { val: 2 }),
+                }
+            },
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Int { val: 1 }),
+                    op: Token::LtEq,
+                    right: Box::new(Expr::Int { val: 2 }),
+                }
+            },
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Int { val: 1 }),
+                    op: Token::GtEq,
+                    right: Box::new(Expr::Int { val: 2 }),
+                }
+            },
+      ];
 
         check_stmt(s, exp);
     }
@@ -453,5 +518,29 @@ mod tests {
         for (i, stmt) in p.iter().enumerate() {
             assert_eq!(stmt, &exp[i]);
         }
+    }
+
+    #[test]
+    fn test_if() {
+        let s = r#"
+        if 1 < 2 
+            print "yah"
+        else 
+            print "nah"
+        end
+        "#;
+
+        let exp = vec![
+           Stmt::If { 
+                condition: Expr::Binary {
+                    left: Box::new(Expr::Int {val: 1}),
+                    right: Box::new(Expr::Int {val: 2}),
+                    op: Token::Lt,
+                },
+                consequence: vec![Stmt::Print {expr: Expr::String {val: "yah".to_string()}}],
+                alternative: Some(vec![Stmt::Print {expr: Expr::String {val: "nah".to_string()}}]),
+           },
+        ];
+        check_stmt(s, exp);
     }
 }

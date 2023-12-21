@@ -32,4 +32,5 @@ pub(crate) enum Stmt {
     Expression { expr: Expr },
     Let { name: Token, expr: Expr },
     Print { expr: Expr },
+    If { condition: Expr, consequence: Vec<Stmt>, alternative: Option<Vec<Stmt>> }
 }
