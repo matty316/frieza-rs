@@ -178,6 +178,8 @@ impl Lexer {
                     }
                 }
             }
+            'a' => { return self.check_keyword("nd", 1, 2, Token::And); }
+            'o' => { return self.check_keyword("r", 1, 1, Token::Or); }
             _ => (),
         }
 
@@ -269,6 +271,7 @@ mod test {
             print inny
         end
         10.
+        and or
         "#;
 
         let exp = vec![
@@ -361,6 +364,9 @@ mod test {
             Token::End,
             Token::NewLine,
             Token::Float(10.0),
+            Token::NewLine,
+            Token::And,
+            Token::Or,
             Token::NewLine,
             Token::Eof
         ];

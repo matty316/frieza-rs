@@ -153,7 +153,31 @@ impl Parser {
     }
 
     fn expr(&mut self) -> Expr {
-        self.comparison()
+        self.or()
+    }
+
+    fn or(&mut self) -> Expr {
+        let left = self.and();
+
+        while self.check(vec![Token::Or]) {
+            let op = self.previous();
+            let right = self.and();
+            return Binary { left: Box::new(left), op, right: Box::new(right)}
+        }
+
+        left
+    }
+
+    fn and(&mut self) -> Expr {
+        let mut left = self.comparison();
+
+        while self.check(vec![Token::And]) {
+            let op = self.previous();
+            let right = self.comparison();
+            return Binary { left: Box::new(left), op, right: Box::new(right) }
+        }
+
+        left
     }
 
     fn comparison(&mut self) -> Expr {
@@ -209,6 +233,14 @@ impl Parser {
             Token::Float(f) => {
                 self.advance();
                 Float { val: f }
+            }
+            Token::True => {
+                self.advance();
+                Bool { val: true }
+            }
+            Token::False => {
+                self.advance();
+                Bool { val: false}
             }
             _ => {
                 println!("{:?}", self.peek());
@@ -543,4 +575,43 @@ mod tests {
         ];
         check_stmt(s, exp);
     }
+
+    #[test]
+    fn test_and() {
+        let s = r#"
+        true and false
+        "#;
+
+        let exp = vec![
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Bool { val: true}),
+                    right: Box::new(Expr::Bool { val: false}),
+                    op: Token::And,
+                }
+            }
+        ];
+
+        check_stmt(s, exp);
+    }
+
+    #[test]
+    fn test_or() {
+        let s = r#"
+        true or false
+        "#;
+
+        let exp = vec![
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Bool { val: true}),
+                    right: Box::new(Expr::Bool { val: false}),
+                    op: Token::Or,
+                }
+            }
+        ];
+
+        check_stmt(s, exp);
+    }
+
 }

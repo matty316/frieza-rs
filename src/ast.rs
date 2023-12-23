@@ -8,6 +8,7 @@ pub(crate) enum Expr {
     Int { val: i32 }, Float { val: f64 }, String { val: String },
     Grouping { expr: Box<Expr> },
     Name { val: String },
+    Bool { val: bool }
 }
 
 impl Expr {
@@ -20,6 +21,7 @@ impl Expr {
             Expr::String { val } => val.to_string(),
             Expr::Grouping { expr } => format!("({})", expr.string()),
             Expr::Name { val } => val.to_string(),
+            Expr::Bool { val } => val.to_string(),
         }
     }
 }
