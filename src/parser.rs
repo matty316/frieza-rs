@@ -153,16 +153,28 @@ impl Parser {
     }
 
     fn expr(&mut self) -> Expr {
-        self.or()
+        self.equality()
+    }
+
+    fn equality(&mut self) -> Expr {
+        let mut left = self.or();
+
+        while self.check(vec![Token::EqEq, Token::BangEq]) {
+            let op = self.previous();
+            let right = self.or();
+            left = Binary { left: Box::new(left), op, right: Box::new(right) };
+        }
+
+        left
     }
 
     fn or(&mut self) -> Expr {
-        let left = self.and();
+        let mut left = self.and();
 
         while self.check(vec![Token::Or]) {
             let op = self.previous();
             let right = self.and();
-            return Binary { left: Box::new(left), op, right: Box::new(right)}
+            left = Binary { left: Box::new(left), op, right: Box::new(right)};
         }
 
         left
@@ -174,7 +186,7 @@ impl Parser {
         while self.check(vec![Token::And]) {
             let op = self.previous();
             let right = self.comparison();
-            return Binary { left: Box::new(left), op, right: Box::new(right) }
+            left = Binary { left: Box::new(left), op, right: Box::new(right) };
         }
 
         left
@@ -609,6 +621,41 @@ mod tests {
                     op: Token::Or,
                 }
             }
+        ];
+
+        check_stmt(s, exp);
+    }
+
+    #[test]
+    fn test_equality() {
+        let s = r#"
+        true == true
+        5 == 1
+        durk != keef
+        "#;
+
+        let exp = vec![
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Bool { val: true }),
+                    op: Token::EqEq,
+                    right: Box::new(Expr::Bool { val: true }),
+                }
+            },
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Int { val: 5 }),
+                    op: Token::EqEq,
+                    right: Box::new(Expr::Int { val: 1 }),
+                }
+            },
+            Stmt::Expression {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Name { val: "durk".to_string() }),
+                    op: Token::BangEq,
+                    right: Box::new(Expr::Name { val: "keef".to_string() }),
+                }
+            },
         ];
 
         check_stmt(s, exp);
